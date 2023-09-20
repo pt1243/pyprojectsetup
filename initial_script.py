@@ -1,6 +1,7 @@
 import sys
 import subprocess
 import pathlib
+import shutil
 
 
 def assert_is_windows() -> None:
@@ -20,6 +21,9 @@ def assert_git_installed() -> None:
 def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     found: dict[tuple[int, int], pathlib.Path] = {}
 
+    def get_version_tuple():
+        return (sys.version_info[0], sys.version_info[1])
+
     try:
         py_0p = subprocess.run(["py", "-0p"], capture_output=True, text=True)
         lines = py_0p.stdout.splitlines()
@@ -28,9 +32,7 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
 
             if line.startswith("*"):  # currently in a virtual environment
                 executable_path = pathlib.Path(sys.base_exec_prefix) / "python.exe"
-                if not pathlib.Path.exists(executable_path):  # this should never execute, but just in case
-                    continue
-                version_tuple = (sys.version_info[0], sys.version_info[1])  # our python version is the same as the base
+                version_tuple = get_version_tuple()  # our python version is the same as the base
                 if version_tuple[0] < 3:
                     continue  # skip python 2.7
                 found[version_tuple] = executable_path
@@ -50,11 +52,29 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 found[version_tuple] = pathlib.Path(path_str)
 
     except FileNotFoundError:  # py launcher not installed
-        pass
+        pass  # should this log?
 
-    finally:
-        from pprint import pprint
-        pprint(found)
+    if sys.prefix != sys.base_prefix:  # in virtual environment
+        executable_path = pathlib.Path(sys.base_exec_prefix) / "python.exe"
+        version_tuple = get_version_tuple()  # our python version is the same as the base
+        if version_tuple[0] >= 3 and version_tuple not in found.keys():
+            found[version_tuple] = executable_path
+    else:
+        executable_path = sys.executable
+        version_tuple = get_version_tuple()
+        if version_tuple[0] >= 3 and version_tuple not in found.keys():
+            found[version_tuple] = executable_path
+
+    str_path = shutil.which("python")
+    if str_path is not None:
+        run_version = subprocess.run([str_path, "-c", "import sys; print(sys.version_info[0]); print(sys.version_info[1])"], capture_output=True, text=True)
+        version_tuple = tuple(int(i) for i in run_version.stdout.split())
+        if version_tuple[0] >= 3 and version_tuple not in found.keys():
+            found[version_tuple] = pathlib.Path(str_path)
+    
+
+    from pprint import pprint
+    pprint(found)
 
 
 def main():
