@@ -68,13 +68,12 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     str_path = shutil.which("python")
     if str_path is not None:
         run_version = subprocess.run([str_path, "-c", "import sys; print(sys.version_info[0]); print(sys.version_info[1])"], capture_output=True, text=True)
-        version_tuple = tuple(int(i) for i in run_version.stdout.split())
-        if version_tuple[0] >= 3 and version_tuple not in found.keys():
-            found[version_tuple] = pathlib.Path(str_path)
+        if run_version.returncode == 0:  # handle path not pointing to actual executable
+            version_tuple = tuple(int(i) for i in run_version.stdout.split())
+            if version_tuple[0] >= 3 and version_tuple not in found.keys():
+                found[version_tuple] = pathlib.Path(str_path)
     
-
-    from pprint import pprint
-    pprint(found)
+    return found
 
 
 def main():
