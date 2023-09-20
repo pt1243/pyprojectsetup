@@ -42,7 +42,7 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                     continue  # skip python 2.7
                 found[version_tuple] = pathlib.Path(path_str)
             
-            else:  # regular environment
+            else:  # non-preferred environment
                 version_str, path_str = line.split(maxsplit=1)
                 version_tuple = (int(version_str[3]), int(version_str[5:]))
                 if version_tuple[0] < 3:
