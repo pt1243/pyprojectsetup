@@ -12,7 +12,10 @@ def assert_is_windows() -> None:
 
 def assert_git_installed() -> None:
     try:
-        subprocess.run(["git", "-h"], capture_output=True)
+        res = subprocess.run(["git", "-h"], capture_output=True)
+        if res.returncode != 0:
+            print("Something has gone terribly wrong and I am not sure how it would be possible to be here")
+            exit(1)
     except FileNotFoundError:
         print("Error: could not access git. Ensure that git is available by running 'git -h'.")
         exit(1)
