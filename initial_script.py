@@ -2,12 +2,46 @@ import sys
 import subprocess
 import pathlib
 import shutil
+import re
+
+
+__version__ = "0.1.0"
 
 
 def assert_is_windows() -> None:
     if sys.platform != "win32":
-            print("Error: this tool is currently only supported on Windows.")
-            exit(1)
+        # add formatting
+        print("Error: this tool is currently only supported on Windows.")
+        exit(1)
+
+
+def import_third_party():
+    global requests, colorama
+
+    try:
+        import colorama
+        colorama.init(autoreset=True)
+    except ImportError:
+        print("WARNING: There was an error importing colorama.")
+        warn_virtual_environment()
+        sys.exit(1)
+    
+    try:  # other third party requests here
+        import requests
+        
+    except ImportError as e:
+        missing_module = e.msg[17:-1]
+        print(colorama.Fore.YELLOW + "Warning: unable to import required third-party library" + missing_module)
+        exit(1)
+
+
+def check_virtual_environment() -> bool:
+    return sys.prefix != sys.base_prefix
+
+
+def warn_virtual_environment() -> None:
+    if not check_virtual_environment:
+        print(colorama.Fore.YELLOW + "warning: not running in virtual environment")
 
 
 def assert_git_installed() -> None:
@@ -19,6 +53,21 @@ def assert_git_installed() -> None:
     except FileNotFoundError:
         print("Error: could not access git. Ensure that git is available by running 'git -h'.")
         exit(1)
+
+
+def check_update_available() -> bool:
+    url = "https://raw.githubusercontent.com/pt1243/pyprojectsetup/main/initial_script.py"
+    r = requests.get(url)
+    version_string = r"__version__ = ['\"]([^'\"]*)['\"]"
+    match = re.search(version_string, r.text)
+    if match is None:
+        raise ValueError("could not match")  # add formatting
+    else:
+        found_version_string = match.group(1)
+        if found_version_string > __version__:
+            return True
+        return False
+
 
 
 def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
@@ -57,7 +106,7 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     except FileNotFoundError:  # py launcher not installed
         pass  # should this log?
 
-    if sys.prefix != sys.base_prefix:  # in virtual environment
+    if check_virtual_environment():  # in virtual environment
         executable_path = pathlib.Path(sys.base_exec_prefix) / "python.exe"
         version_tuple = get_version_tuple()  # our python version is the same as the base
         if version_tuple[0] >= 3 and version_tuple not in found.keys():
@@ -80,8 +129,18 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
 
 
 def main():
+    # TODO: check windows, virtual environment, colorama, and other imports, and print warnings accordingly
     assert_is_windows()
+    warn_virtual_environment()
+    import_third_party()
+    
     assert_git_installed()
+
+    if not check_virtual_environment():
+        print('warning: not running in virtual environment')
+
+    # if check_update_available():
+    #     pass
 
     python_versions = get_python_versions()
 
