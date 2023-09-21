@@ -17,7 +17,7 @@ def check_prerequisites():
         "git": False,
         "venv": False,
         "colorama": False,
-        "third party": False,
+        "requests": False,
     }
 
     if sys.platform != "win32":
@@ -28,39 +28,47 @@ def check_prerequisites():
     except FileNotFoundError:
         problems["git"] = True
     
-    if not check_virtual_environment:
+    if not check_virtual_environment():
         problems["venv"] = True
     
     try:
         import colorama
         colorama.init(autoreset=False)
+        ERROR = colorama.Fore.RED
+        WARN = colorama.Fore.YELLOW
     except ImportError:
         problems["colorama"] = True
     
     try:
         import requests
     except ImportError:
-        problems["third party"] = True  # separate per module?
-
-
-
-def import_third_party():
-    global requests, colorama
-
-    try:
-        import colorama
-        colorama.init(autoreset=True)
-    except ImportError:
-        print("WARNING: There was an error importing colorama.")
-        warn_virtual_environment()
-        sys.exit(1)
+        problems["requests"] = True  # separate per module?
     
-    try:  # other third party requests here
-        import requests
-        
-    except ImportError as e:
-        missing_module = e.msg[17:-1]
-        print(colorama.Fore.YELLOW + "Warning: unable to import required third-party library" + missing_module)
+    def print_and_format(msg: str, fmt):
+        if not problems["colorama"]:
+            print(fmt + msg)
+        else:
+            print(msg)
+
+    if problems["os"]:
+        print_and_format("ERROR: this tool is currently only supported on Windows.", ERROR)
+        exit(1)
+    
+    if problems["git"]:
+        print_and_format("ERROR: git not found.", ERROR)
+        print_and_format("Please verify that git is installed by running 'git -h'.", ERROR)
+        exit(1)
+    
+    if problems["venv"]:
+        print_and_format("Warning: script is not running from a virtual environment.", WARN)
+        print_and_format("This script should be run from a virtual environment to ensure that all dependencies are isolated.", WARN)
+    
+    if any((problems["colorama"], problems["requests"])):
+        print_and_format("ERROR: the following dependencies could not be imported:", ERROR)
+        if problems["colorama"]:
+            print_and_format("    colorama", ERROR)
+        if problems["requests"]:
+            print_and_format("    requests", ERROR)
         exit(1)
 
 
@@ -71,17 +79,6 @@ def check_virtual_environment() -> bool:
 def warn_virtual_environment() -> None:
     if not check_virtual_environment:
         print(colorama.Fore.YELLOW + "warning: not running in virtual environment")
-
-
-def assert_git_installed() -> None:
-    try:
-        res = subprocess.run(["git", "-h"], capture_output=True)
-        if res.returncode != 0:
-            print("Something has gone terribly wrong and I am not sure how it would be possible to be here")
-            exit(1)
-    except FileNotFoundError:
-        print("Error: could not access git. Ensure that git is available by running 'git -h'.")
-        exit(1)
 
 
 def check_update_available() -> bool:
@@ -159,11 +156,7 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
 
 def main():
     # TODO: check windows, virtual environment, colorama, and other imports, git installed, and print warnings accordingly
-    assert_is_windows()
-    warn_virtual_environment()
-    import_third_party()
-    
-    assert_git_installed()
+    check_prerequisites()
 
     if not check_virtual_environment():
         print('warning: not running in virtual environment')
