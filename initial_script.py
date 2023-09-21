@@ -10,7 +10,7 @@ __version__ = "0.1.0"
 
 def check_prerequisites():
     """Checks that all required prerequisites for running this script are satisfied."""
-    global colorama, requests
+    global colorama, requests, ERROR, WARN
 
     problems: dict[str, bool] = {
         "os": False,
@@ -22,6 +22,9 @@ def check_prerequisites():
 
     if sys.platform != "win32":
         problems["os"] = True
+
+    from ctypes import windll
+    windll.shcore.SetProcessDpiAwareness(1)
 
     try:
         subprocess.run(["git", "-h"], capture_output=True)
@@ -38,11 +41,11 @@ def check_prerequisites():
         WARN = colorama.Fore.YELLOW
     except ImportError:
         problems["colorama"] = True
-    
+
     try:
         import requests
     except ImportError:
-        problems["requests"] = True  # separate per module?
+        problems["requests"] = True
     
     def print_and_format(msg: str, fmt):
         if not problems["colorama"]:
@@ -58,7 +61,7 @@ def check_prerequisites():
         print_and_format("ERROR: git not found.", ERROR)
         print_and_format("Please verify that git is installed by running 'git -h'.", ERROR)
         exit(1)
-    
+
     if problems["venv"]:
         print_and_format("Warning: script is not running from a virtual environment.", WARN)
         print_and_format("This script should be run from a virtual environment to ensure that all dependencies are isolated.", WARN)
@@ -76,11 +79,6 @@ def check_virtual_environment() -> bool:
     return sys.prefix != sys.base_prefix
 
 
-def warn_virtual_environment() -> None:
-    if not check_virtual_environment:
-        print(colorama.Fore.YELLOW + "warning: not running in virtual environment")
-
-
 def check_update_available() -> bool:
     url = "https://raw.githubusercontent.com/pt1243/pyprojectsetup/main/initial_script.py"
     r = requests.get(url)
@@ -93,7 +91,6 @@ def check_update_available() -> bool:
         if found_version_string > __version__:
             return True
         return False
-
 
 
 def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
@@ -111,26 +108,27 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
             if line.startswith("*"):  # currently in a virtual environment
                 executable_path = pathlib.Path(sys.base_exec_prefix) / "python.exe"
                 version_tuple = get_version_tuple()  # our python version is the same as the base
-                if version_tuple[0] < 3:
-                    continue  # skip python 2.7
+                if version_tuple[0] < 3 or "-32" in line:
+                    continue  # skip python 2.7 and 32 bit versions
                 found[version_tuple] = executable_path
             
             elif "*" in line:  # preferred environment
                 version_str, _, path_str = line.split(maxsplit=2)
                 version_tuple = (int(version_str[3]), int(version_str[5:]))  # todo: guard against ValueError
-                if version_tuple[0] < 3:
-                    continue  # skip python 2.7
+                if version_tuple[0] < 3 or "-32" in line:
+                    continue  # skip python 2.7 and 32 bit versions
                 found[version_tuple] = pathlib.Path(path_str)
             
             else:  # non-preferred environment
                 version_str, path_str = line.split(maxsplit=1)
                 version_tuple = (int(version_str[3]), int(version_str[5:]))
-                if version_tuple[0] < 3:
-                    continue  # skip python 2.7
+                if version_tuple[0] < 3 or "-32" in line:
+                    continue  # skip python 2.7 and 32 bit versions
                 found[version_tuple] = pathlib.Path(path_str)
 
     except FileNotFoundError:  # py launcher not installed
-        pass  # should this log?
+        print(WARN + "Warning: 'py' launcher not found; consider installing it to allow for better Python interpreter selection.")
+        print(WARN + "For more information see https://github.com/pt1243/python-guide/blob/main/practical-matters/installing-and-managing-python.md")
 
     if check_virtual_environment():  # in virtual environment
         executable_path = pathlib.Path(sys.base_exec_prefix) / "python.exe"
@@ -150,19 +148,15 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
             version_tuple = tuple(int(i) for i in run_version.stdout.split())
             if version_tuple[0] >= 3 and version_tuple not in found.keys():
                 found[version_tuple] = pathlib.Path(str_path)
-    
+
     return found
 
 
 def main():
-    # TODO: check windows, virtual environment, colorama, and other imports, git installed, and print warnings accordingly
     check_prerequisites()
 
-    if not check_virtual_environment():
-        print('warning: not running in virtual environment')
-
-    # if check_update_available():
-    #     pass
+    if check_update_available():
+        print("update available")  # todo
 
     python_versions = get_python_versions()
 
