@@ -8,11 +8,40 @@ import re
 __version__ = "0.1.0"
 
 
-def assert_is_windows() -> None:
+def check_prerequisites():
+    """Checks that all required prerequisites for running this script are satisfied."""
+    global colorama, requests
+
+    problems: dict[str, bool] = {
+        "os": False,
+        "git": False,
+        "venv": False,
+        "colorama": False,
+        "third party": False,
+    }
+
     if sys.platform != "win32":
-        # add formatting
-        print("Error: this tool is currently only supported on Windows.")
-        exit(1)
+        problems["os"] = True
+
+    try:
+        subprocess.run(["git", "-h"], capture_output=True)
+    except FileNotFoundError:
+        problems["git"] = True
+    
+    if not check_virtual_environment:
+        problems["venv"] = True
+    
+    try:
+        import colorama
+        colorama.init(autoreset=False)
+    except ImportError:
+        problems["colorama"] = True
+    
+    try:
+        import requests
+    except ImportError:
+        problems["third party"] = True  # separate per module?
+
 
 
 def import_third_party():
@@ -129,7 +158,7 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
 
 
 def main():
-    # TODO: check windows, virtual environment, colorama, and other imports, and print warnings accordingly
+    # TODO: check windows, virtual environment, colorama, and other imports, git installed, and print warnings accordingly
     assert_is_windows()
     warn_virtual_environment()
     import_third_party()
