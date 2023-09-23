@@ -1,3 +1,3 @@
-from . import common
+from . import core
 
-common.check_os_is_windows()
+core.check_os_is_windows()

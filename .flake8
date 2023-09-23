@@ -7,3 +7,4 @@ exclude =
     .tox
     __pycache__
     .venv
+    templates
