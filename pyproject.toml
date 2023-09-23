@@ -1,0 +1,35 @@
+[project]
+name = "pyprojectsetup"
+description = "My Python package."
+version = "0.1.0"
+requires-python = ">=3.7"
+readme = "README.md"
+license = {file = "LICENSE"}
+dependencies = [
+    "requests",
+    "colorama>=0.4.6",
+]
+
+[build-system]
+requires = ["setuptools>=43.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools]
+packages = ["pyprojectsetup"]
+
+
+[tool.mypy]
+exclude = [
+    'templates',
+]
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 120
+extend-exclude = '''
+(
+    templates
+)
+'''
