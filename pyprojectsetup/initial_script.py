@@ -24,18 +24,20 @@ def check_prerequisites():
         problems["os"] = True
 
     from ctypes import windll
+
     windll.shcore.SetProcessDpiAwareness(1)
 
     try:
         subprocess.run(["git", "-h"], capture_output=True)
     except FileNotFoundError:
         problems["git"] = True
-    
+
     if not check_virtual_environment():
         problems["venv"] = True
-    
+
     try:
         import colorama
+
         colorama.init(autoreset=False)
         ERROR = colorama.Fore.RED
         WARN = colorama.Fore.YELLOW
@@ -46,7 +48,7 @@ def check_prerequisites():
         import requests
     except ImportError:
         problems["requests"] = True
-    
+
     def print_and_format(msg: str, fmt):
         if not problems["colorama"]:
             print(fmt + msg)
@@ -56,7 +58,7 @@ def check_prerequisites():
     if problems["os"]:
         print_and_format("ERROR: this tool is currently only supported on Windows.", ERROR)
         exit(1)
-    
+
     if problems["git"]:
         print_and_format("ERROR: git not found.", ERROR)
         print_and_format("Please verify that git is installed by running 'git -h'.", ERROR)
@@ -64,8 +66,10 @@ def check_prerequisites():
 
     if problems["venv"]:
         print_and_format("Warning: script is not running from a virtual environment.", WARN)
-        print_and_format("This script should be run from a virtual environment to ensure that all dependencies are isolated.", WARN)
-    
+        print_and_format(
+            "This script should be run from a virtual environment to ensure that all dependencies are isolated.", WARN
+        )
+
     if any((problems["colorama"], problems["requests"])):
         print_and_format("ERROR: the following dependencies could not be imported:", ERROR)
         if problems["colorama"]:
@@ -111,14 +115,14 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 if version_tuple[0] < 3 or "-32" in line:
                     continue  # skip python 2.7 and 32 bit versions
                 found[version_tuple] = executable_path
-            
+
             elif "*" in line:  # preferred environment
                 version_str, _, path_str = line.split(maxsplit=2)
                 version_tuple = (int(version_str[3]), int(version_str[5:]))  # todo: guard against ValueError
                 if version_tuple[0] < 3 or "-32" in line:
                     continue  # skip python 2.7 and 32 bit versions
                 found[version_tuple] = pathlib.Path(path_str)
-            
+
             else:  # non-preferred environment
                 version_str, path_str = line.split(maxsplit=1)
                 version_tuple = (int(version_str[3]), int(version_str[5:]))
@@ -127,8 +131,14 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 found[version_tuple] = pathlib.Path(path_str)
 
     except FileNotFoundError:  # py launcher not installed
-        print(WARN + "Warning: 'py' launcher not found; consider installing it to allow for better Python interpreter selection.")
-        print(WARN + "For more information see https://github.com/pt1243/python-guide/blob/main/practical-matters/installing-and-managing-python.md")
+        print(
+            WARN
+            + "Warning: 'py' launcher not found; consider installing it to allow for better Python interpreter selection."
+        )
+        print(
+            WARN
+            + "For more information see https://github.com/pt1243/python-guide/blob/main/practical-matters/installing-and-managing-python.md"
+        )
 
     if check_virtual_environment():  # in virtual environment
         executable_path = pathlib.Path(sys.base_exec_prefix) / "python.exe"
@@ -143,7 +153,11 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
 
     str_path = shutil.which("python")
     if str_path is not None:
-        run_version = subprocess.run([str_path, "-c", "import sys; print(sys.version_info[0]); print(sys.version_info[1])"], capture_output=True, text=True)
+        run_version = subprocess.run(
+            [str_path, "-c", "import sys; print(sys.version_info[0]); print(sys.version_info[1])"],
+            capture_output=True,
+            text=True,
+        )
         if run_version.returncode == 0:  # handle path not pointing to actual executable
             version_tuple = tuple(int(i) for i in run_version.stdout.split())
             if version_tuple[0] >= 3 and version_tuple not in found.keys():
