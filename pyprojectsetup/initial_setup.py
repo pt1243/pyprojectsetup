@@ -57,7 +57,7 @@ def main():
         print_and_format(
             "This install script will continue to run, but git must be installed for the main script to function.", WARN
         )
-    
+
     python_versions = get_python_versions()
 
 
