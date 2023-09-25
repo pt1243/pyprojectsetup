@@ -191,4 +191,23 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
         possible_executable_paths.add(_BASE_EXECUTABLE_PATH)
     else:
         possible_executable_paths.add(_CURRENT_EXECUTABLE_PATH)
+
+    results: dict[tuple[int, int], pathlib.Path] = {}
+    results_32_bit: dict[tuple[int, int], pathlib.Path] = {}
+
+    for entry in possible_executable_paths:
+        if verify_executable_is_python(entry):
+            if not verify_executable_is_venv(entry):
+                entry_version_info = get_version_info(entry)
+                if entry_version_info >= (3, 7):
+                    if is_64_bit(entry):
+                        results[entry_version_info] = entry
+                    else:
+                        results_32_bit[entry_version_info] = entry
     
+    if len(results) == 0:
+        print_and_format("Warning: no 64-bit Python versions found. Falling back to 32-bit versions.", WARN)
+        print_and_format("Consider upgrading to 64-bit Python.")
+        return results_32_bit
+    else:
+        return results

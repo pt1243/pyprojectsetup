@@ -59,6 +59,8 @@ def main():
         )
 
     python_versions = get_python_versions()
+    from pprint import pprint
+    pprint(python_versions)
 
 
 if __name__ == "__main__":
