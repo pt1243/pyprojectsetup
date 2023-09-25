@@ -164,21 +164,18 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 possible_executable_paths.add(possible_executable)
 
     try:
-        shutil_text = subprocess.run(
-            [str(_BASE_EXECUTABLE_PATH), "-c", "import shutil; print(shutil.which('python'))"],
-            env={"VIRTUAL_ENV": "", "PATH": os.environ["_OLD_VIRTUAL_PATH"]},
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        env = {"VIRTUAL_ENV": "", "PATH": os.environ["_OLD_VIRTUAL_PATH"]}
     except KeyError:
-        shutil_text = subprocess.run(
-            [str(_BASE_EXECUTABLE_PATH), "-c", "import shutil; print(shutil.which('python'))"],
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
-    finally:
-        if shutil_text != "":
-            possible_executable_paths.add(pathlib.Path(shutil_text))
+        env = None
+
+    shutil_text = subprocess.run(
+        [str(_BASE_EXECUTABLE_PATH), "-c", "import shutil; print(shutil.which('python'))"],
+        env=env,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if shutil_text != "":
+        possible_executable_paths.add(pathlib.Path(shutil_text))
 
     if check_running_in_virtual_environment():  # current interpreter
         possible_executable_paths.add(_BASE_EXECUTABLE_PATH)
