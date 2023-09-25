@@ -129,15 +129,12 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
 
             if line.startswith("*"):  # current virtual environment
                 executable_path = _BASE_EXECUTABLE_PATH
-                # print(f"current virtual environment, {executable_path = }")
 
             elif "*" in line:  # preferred environment
                 executable_path = pathlib.Path(line.split(maxsplit=2)[-1])
-                # print(f"preferred environment, {executable_path = }")
 
             else:  # non-preferred envionment
                 executable_path = pathlib.Path(line.split(maxsplit=1)[-1])
-                # print(f"non-preferred environment, {executable_path = }")
 
             possible_executable_paths.add(executable_path)
 
@@ -167,7 +164,6 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 root_dir = pathlib.Path(entry)
             possible_executable = root_dir / "python.exe"
             if possible_executable.exists():
-                # print(f"found from PATH search, {possible_executable = }")
                 possible_executable_paths.add(possible_executable)
 
     shutil_text = subprocess.run(
@@ -191,13 +187,8 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
         if not entry_path.is_relative_to(pathlib.Path(os.path.expanduser("~/AppData/Local/Microsoft/WindowsApps"))):
             possible_executable_paths.add(entry_path)
 
-    if check_running_in_virtual_environment():  # current interpreter
+    if check_running_in_virtual_environment():
         possible_executable_paths.add(_BASE_EXECUTABLE_PATH)
     else:
         possible_executable_paths.add(_CURRENT_EXECUTABLE_PATH)
-
-    from pprint import pprint
-
-    # pprint(sorted(possible_executable_paths))
-    for i in possible_executable_paths:
-        print(i, verify_executable_is_python(i))
+    
