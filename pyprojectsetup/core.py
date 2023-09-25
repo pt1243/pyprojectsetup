@@ -151,7 +151,14 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
             WARN,
         )
 
-    path_entries = subprocess.run("echo %PATH%", shell=True, capture_output=True, text=True).stdout.strip()
+    # handle virtual environments
+    try:
+        env = {"VIRTUAL_ENV": "", "PATH": os.environ["_OLD_VIRTUAL_PATH"]}
+        path_entries = os.environ["_OLD_VIRTUAL_PATH"]
+    except KeyError:
+        env = None
+        path_entries = os.environ["PATH"]
+
     for entry in path_entries.split(";"):
         if "Python" in entry:
             if entry.endswith("/Scripts/"):
@@ -163,11 +170,6 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 # print(f"found from PATH search, {possible_executable = }")
                 possible_executable_paths.add(possible_executable)
 
-    try:
-        env = {"VIRTUAL_ENV": "", "PATH": os.environ["_OLD_VIRTUAL_PATH"]}
-    except KeyError:
-        env = None
-
     shutil_text = subprocess.run(
         [str(_BASE_EXECUTABLE_PATH), "-c", "import shutil; print(shutil.which('python'))"],
         env=env,
@@ -176,6 +178,18 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     ).stdout.strip()
     if shutil_text != "":
         possible_executable_paths.add(pathlib.Path(shutil_text))
+
+    where_entries = subprocess.run(
+        "where python",
+        shell=True,
+        env=env,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    for entry in where_entries:
+        entry_path = pathlib.Path(entry)
+        if not entry_path.is_relative_to(pathlib.Path(os.path.expanduser("~/AppData/Local/Microsoft/WindowsApps"))):
+            possible_executable_paths.add(entry_path)
 
     if check_running_in_virtual_environment():  # current interpreter
         possible_executable_paths.add(_BASE_EXECUTABLE_PATH)
