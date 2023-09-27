@@ -8,6 +8,7 @@ try:
         check_git_installed,
         get_python_versions,
         print_and_format,
+        choose_directory,
         WARN,
         ERROR,
     )
@@ -33,10 +34,7 @@ except ImportError:
 
 
 import shutil
-import tkinter as tk
-
-import requests
-import colorama
+import virtualenv
 
 
 def main():
@@ -74,10 +72,13 @@ def main():
         ...
 
         if not check_running_in_virtual_environment():
-            print_and_format("Warning: adding ")
+            # print_and_format("Warning: adding ")
+            ...
 
     else:
         ...  # TODO: figure out what to do here
+    
+    choose_directory(must_be_empty=True)
 
 
 if __name__ == "__main__":

@@ -1,18 +1,18 @@
 import sys
 import pathlib
 import subprocess
-import os
 
 
 _third_party_import_errors = {
     "colorama": False,
     "requests": False,
+    "virtualenv": False,
 }
 
 
 _BASE_PREFIX_PATH = pathlib.Path(sys.base_prefix)
 _BASE_EXECUTABLE_PATH = _BASE_PREFIX_PATH / "python.exe"
-_CURRENT_EXECUTABLE_PATH = pathlib.Path(sys.executable)
+_BASE_FOLDER = pathlib.Path(__file__).resolve().parents[1]
 
 
 try:
@@ -22,11 +22,11 @@ try:
     WARN = colorama.Fore.YELLOW
     ERROR = colorama.Fore.RED
 
-    def print_and_format(msg: str, fmt=None):
+    def print_and_format(msg: str, fmt=None, **kwargs):
         if fmt is None:
-            print(msg)
+            print(msg, **kwargs)
         else:
-            print(fmt + msg)
+            print(fmt + msg, **kwargs)
 
 except ImportError:
     _third_party_import_errors["colorama"] = True
@@ -34,12 +34,13 @@ except ImportError:
     WARN = None
     ERROR = None
 
-    def print_and_format(msg: str, fmt=None):
-        print(msg)
+    def print_and_format(msg: str, fmt=None, **kwargs):
+        print(msg, **kwargs)
 
 
 try:
-    import tkinter
+    import tkinter as tk
+    import tkinter.filedialog
 except ImportError:
     print_and_format("ERROR: unable to import tkinter. Ensure Python is installed with tkinter support.", ERROR)
     print_and_format(
@@ -48,10 +49,18 @@ except ImportError:
     )
     exit(1)
 
+_root = tk.Tk()
+_root.wm_attributes("-topmost", -1)
+_root.withdraw()
+
 try:
     import requests
 except ImportError:
     _third_party_import_errors["requests"] = True
+try:
+    import virtualenv
+except ImportError:
+    _third_party_import_errors["virtualenv"] = True
 
 if any(v for v in _third_party_import_errors.values()):
     print_and_format("ERROR: unable to import the following third party dependencies:", ERROR)
@@ -157,8 +166,11 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                             exec_str = winreg.QueryValueEx(install_path, "ExecutablePath")[0]
                             found_path_strings.add(exec_str)
                         except OSError:
-                            # executable path missing?
-                            ...
+                            print_and_format(
+                                f"Warning: registry entry for Python version {version} does not have an associated executable path.",
+                                WARN,
+                            )
+                            continue
         except OSError:  # move to the next hive
             continue
 
@@ -180,13 +192,13 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 print_and_format("Consider (re)running the uninstaller to correctly remove all registry keys.", WARN)
                 continue
         else:
-            print_and_format(f"Warning: Python registry entry '{path_string}' does not exist.", WARN)
+            print_and_format(f"Warning: Python registry entry at '{path_string}' does not exist.", WARN)
             print_and_format("Consider (re)running the uninstaller to correctly remove all registry keys.", WARN)
             continue
 
     if len(paths_64_bit) == 0:
         if len(paths_32_bit) == 0:
-            print_and_format("Warning: could not obtain any Python installations from registry keys.", WARN)
+            print_and_format("Error: could not obtain any Python installations from registry keys.", ERROR)
             print_and_format(
                 "Falling back to current executable; additional installations will need to be selected manually.", WARN
             )
@@ -198,9 +210,9 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 if k[0] == 2 or k[1] < 8:
                     # TODO: distinguish between completely unsupported, and just unsupported by tox etc
                     print_and_format(
-                        f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually."
+                        f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually.",
                     )
-            return dict(sorted({k: v for k, v in paths_32_bit.items() if k[1] >= 8}.items()))
+            return dict(sorted({k: v for k, v in paths_32_bit.items() if k[0] >= 3 and k[1] >= 8}.items()))
 
     if len(paths_32_bit) > 0:
         print_and_format("Warning: the following 32-bit Python installations were found:", WARN)
@@ -214,4 +226,22 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
             print_and_format(
                 f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually."
             )
-    return dict(sorted({k: v for k, v in paths_64_bit.items() if k[1] >= 8}.items()))
+    return dict(sorted({k: v for k, v in paths_64_bit.items() if k[0] >= 3 and k[1] >= 8}.items()))
+
+
+def choose_directory(prompt: str = "Pleasse select a folder...", title: str = "Select folder", initialdir: str = _BASE_FOLDER, must_be_empty: bool = False) -> pathlib.Path:
+    """Opens a tkinter folder choice dialog and returns the path to the folder."""
+    while True:
+        print_and_format(prompt)
+        dir_str = tkinter.filedialog.askdirectory(title=title, initialdir=initialdir)
+        if dir_str == "":
+            input("Directory selection cancelled; press any key to continue... ",)
+            continue
+        dir_path = pathlib.Path(dir_str)
+        if must_be_empty:
+            if next(dir_path.iterdir(), None) is None:
+                break
+            print_and_format(f"Warning: selected directory '{dir_path}' is not empty; press any key to re-select... ", WARN, end="")  # TODO: press any key to continue
+        else:
+            break
+    return dir_path
