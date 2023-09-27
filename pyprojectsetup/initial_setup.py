@@ -1,11 +1,6 @@
 """Initial setup script."""
 
 
-import subprocess
-import sys
-import pathlib
-import shutil
-
 try:
     from core import (
         check_os_is_windows,
@@ -36,6 +31,10 @@ except ImportError:
     finally:
         exit(1)
 
+
+import shutil
+import tkinter as tk
+
 import requests
 import colorama
 
@@ -44,6 +43,9 @@ def main():
     if not check_os_is_windows():
         print_and_format("ERROR: this tool is currently only supported on Windows.", ERROR)
         exit(1)
+
+    from ctypes import windll
+    windll.shcore.SetProcessDpiAwareness(1)  # make tkinter not blurry
 
     if not check_running_in_virtual_environment():
         print_and_format("Warning: not running in a virtual environment.", WARN)
@@ -61,6 +63,22 @@ def main():
     python_versions = get_python_versions()
     from pprint import pprint
     pprint(python_versions)
+    
+    if shutil.which('pyprojectsetup') is None:
+        ...  # prompt to add
+        print_and_format("Note: pyprojectsetup is not installed on your system path. Do you want to install it?")
+        print_and_format("This allows you to run 'pyprojectsetup' from anywhere to run this tool.")
+
+        ...
+
+        if not check_running_in_virtual_environment():
+            print_and_format("Warning: adding ")
+
+    else:
+        ...  # TODO: figure out what to do here 
+    
+
+    
 
 
 if __name__ == "__main__":

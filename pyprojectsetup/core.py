@@ -37,6 +37,12 @@ except ImportError:
     def print_and_format(msg: str, fmt=None):
         print(msg)
 
+try:
+    import tkinter
+except ImportError:
+    print_and_format("ERROR: unable to import tkinter. Ensure Python is installed with tkinter support.", ERROR)
+    print_and_format("See https://github.com/pt1243/python-guide/blob/main/practical-matters/installing-and-managing-python.md for more information.", WARN)
+    exit(1)
 
 try:
     import requests
@@ -184,7 +190,7 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     ).stdout.splitlines()
     for entry in where_entries:
         entry_path = pathlib.Path(entry)
-        if not entry_path.is_relative_to(pathlib.Path(os.path.expanduser("~/AppData/Local/Microsoft/WindowsApps"))):
+        if not entry_path.is_relative_to(pathlib.Path("~/AppData/Local/Microsoft/WindowsApps").expanduser()):
             possible_executable_paths.add(entry_path)
 
     if check_running_in_virtual_environment():
