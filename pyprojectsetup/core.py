@@ -14,7 +14,7 @@ _BASE_PREFIX_PATH = pathlib.Path(sys.base_prefix)
 _BASE_EXECUTABLE_PATH = _BASE_PREFIX_PATH / "python.exe"
 _CURRENT_EXECUTABLE = pathlib.Path(sys.executable)
 _ROOT_FOLDER = pathlib.Path(__file__).resolve().parents[1]
-IS_VIRTUAL_ENVIRONMENT = (sys.prefix != sys.base_prefix)
+_IS_VIRTUAL_ENVIRONMENT = (sys.prefix != sys.base_prefix)
 
 
 try:
@@ -38,6 +38,12 @@ except ImportError:
 
     def print_and_format(msg: str, fmt=None, **kwargs):
         print(msg, **kwargs)
+
+
+if not _IS_VIRTUAL_ENVIRONMENT:
+    print_and_format("ERROR: not running from a virtual environment.", ERROR)
+    print_and_format("Follow the instructions at https://github.com/pt1243/pyprojectsetup#readme to install this tool correctly.")
+    exit(1)
 
 
 try:
@@ -73,14 +79,11 @@ if any(v for v in _third_party_import_errors.values()):
     ...  # TODO: prompt library
 
     install_deps = True
-    if IS_VIRTUAL_ENVIRONMENT:
-        if not _third_party_import_errors["virtualenv"]:
-            ...
-    else:
-        print_and_format(
-            "\nFollow the instructions at https://github.com/pt1243/pyprojectsetup#readme to create a virtual environment and install all required dependencies.",
-            WARN,
-        )
+    
+    print_and_format(
+        "\nFollow the instructions at https://github.com/pt1243/pyprojectsetup#readme to create a virtual environment and install all required dependencies.",
+        WARN,
+    )
     exit(1)
 
 
