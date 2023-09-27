@@ -37,11 +37,15 @@ except ImportError:
     def print_and_format(msg: str, fmt=None):
         print(msg)
 
+
 try:
     import tkinter
 except ImportError:
     print_and_format("ERROR: unable to import tkinter. Ensure Python is installed with tkinter support.", ERROR)
-    print_and_format("See https://github.com/pt1243/python-guide/blob/main/practical-matters/installing-and-managing-python.md for more information.", WARN)
+    print_and_format(
+        "See https://github.com/pt1243/python-guide/blob/main/practical-matters/installing-and-managing-python.md for more information.",
+        WARN,
+    )
     exit(1)
 
 try:
@@ -146,9 +150,11 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
         try:
             with winreg.OpenKeyEx(hive, r"Software\Python\PythonCore", access=winreg.KEY_READ | flags) as python_core:
                 for version in enum_keys(python_core):
-                    with winreg.OpenKey(python_core, rf"{version}\InstallPath") as install_path:
+                    with winreg.OpenKey(
+                        python_core, rf"{version}\InstallPath"
+                    ) as install_path:  # TODO: this probably needs error handling as well
                         try:
-                            exec_str = winreg.QueryValueEx(install_path, 'ExecutablePath')[0]
+                            exec_str = winreg.QueryValueEx(install_path, "ExecutablePath")[0]
                             found_path_strings.add(exec_str)
                         except OSError:
                             # executable path missing?
@@ -168,7 +174,9 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
                 else:
                     paths_32_bit[get_version_info(executable)] = executable
             else:
-                print_and_format(f"Warning: executable at '{path_string}' does not appear to be a Python interpreter.", WARN)
+                print_and_format(
+                    f"Warning: executable at '{path_string}' does not appear to be a Python interpreter.", WARN
+                )
                 print_and_format("Consider (re)running the uninstaller to correctly remove all registry keys.", WARN)
                 continue
         else:
@@ -179,7 +187,9 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     if len(paths_64_bit) == 0:
         if len(paths_32_bit) == 0:
             print_and_format("Warning: could not obtain any Python installations from registry keys.", WARN)
-            print_and_format("Falling back to current executable; additional installations will need to be selected manually.", WARN)
+            print_and_format(
+                "Falling back to current executable; additional installations will need to be selected manually.", WARN
+            )
             return {(sys.version_info[0], sys.version_info[1]): _BASE_EXECUTABLE_PATH}
         else:
             print_and_format("Warning: no 64-bit versions of Python found.", WARN)
@@ -187,7 +197,9 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
             for k in paths_32_bit:
                 if k[0] == 2 or k[1] < 8:
                     # TODO: distinguish between completely unsupported, and just unsupported by tox etc
-                    print_and_format(f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually.")
+                    print_and_format(
+                        f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually."
+                    )
             return dict(sorted({k: v for k, v in paths_32_bit.items() if k[1] >= 8}.items()))
 
     if len(paths_32_bit) > 0:
@@ -195,9 +207,11 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
         for path in paths_32_bit.values():
             print_and_format(f"    {path}", WARN)
         print_and_format("Consider upgrading these versions to 64-bit Python.", WARN)
-    
+
     for k in paths_64_bit:
         if k[0] == 2 or k[1] < 8:
             # TODO: distinguish between completely unsupported, and just unsupported by tox etc
-            print_and_format(f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually.")
+            print_and_format(
+                f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually."
+            )
     return dict(sorted({k: v for k, v in paths_64_bit.items() if k[1] >= 8}.items()))

@@ -45,6 +45,7 @@ def main():
         exit(1)
 
     from ctypes import windll
+
     windll.shcore.SetProcessDpiAwareness(1)  # make tkinter not blurry
 
     if not check_running_in_virtual_environment():
@@ -62,9 +63,10 @@ def main():
 
     python_versions = get_python_versions()
     from pprint import pprint
+
     pprint(python_versions)
-    
-    if shutil.which('pyprojectsetup') is None:
+
+    if shutil.which("pyprojectsetup") is None:
         ...  # prompt to add
         # print_and_format("Note: pyprojectsetup is not installed on your system path. Do you want to install it?")
         # print_and_format("This allows you to run 'pyprojectsetup' from anywhere to run this tool.")
@@ -75,10 +77,7 @@ def main():
             print_and_format("Warning: adding ")
 
     else:
-        ...  # TODO: figure out what to do here 
-    
-
-    
+        ...  # TODO: figure out what to do here
 
 
 if __name__ == "__main__":
