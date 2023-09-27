@@ -66,8 +66,8 @@ def main():
     
     if shutil.which('pyprojectsetup') is None:
         ...  # prompt to add
-        print_and_format("Note: pyprojectsetup is not installed on your system path. Do you want to install it?")
-        print_and_format("This allows you to run 'pyprojectsetup' from anywhere to run this tool.")
+        # print_and_format("Note: pyprojectsetup is not installed on your system path. Do you want to install it?")
+        # print_and_format("This allows you to run 'pyprojectsetup' from anywhere to run this tool.")
 
         ...
 

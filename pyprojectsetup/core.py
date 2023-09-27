@@ -49,7 +49,7 @@ try:
 except ImportError:
     _third_party_import_errors["requests"] = True
 
-if any((v for v in _third_party_import_errors.values())):
+if any(v for v in _third_party_import_errors.values()):
     print_and_format("ERROR: unable to import the following third party dependencies:", ERROR)
     for module, import_error in _third_party_import_errors.items():
         if import_error:
@@ -80,13 +80,13 @@ def check_git_installed() -> bool:
         return False
 
 
-def is_64_bit(executable: pathlib.Path) -> bool:
+def get_is_64_bit(executable: pathlib.Path) -> bool:
     """Returns `True` if the executable is 64-bit Python, else `False`."""
     return (
         subprocess.run(
-            [str(executable), "-c", "import struct; print(struct.calcsize('P') * 8)"], capture_output=True, text=True
+            [str(executable), "-c", "import sys; print(sys.maxsize > 2**32)"], capture_output=True, text=True
         ).stdout.strip()
-        == "64"
+        == "True"
     )
 
 
@@ -125,95 +125,79 @@ def verify_executable_is_venv(executable: pathlib.Path) -> bool:
 def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     """Return currently installed Python versions."""
 
-    possible_executable_paths: set[pathlib.Path] = set()
+    import winreg
 
-    try:
-        py_launcher_result = subprocess.run(["py", "-0p"], capture_output=True, text=True)
-        lines = py_launcher_result.stdout.splitlines()
-        for line in lines:
-            line = line.strip()
+    def enum_keys(key):  # iterate over subkeys
+        i = 0
+        while True:
+            try:
+                yield winreg.EnumKey(key, i)
+            except OSError:
+                break
+            i += 1
 
-            if line.startswith("*"):  # current virtual environment
-                executable_path = _BASE_EXECUTABLE_PATH
+    found_path_strings = set()
 
-            elif "*" in line:  # preferred environment
-                executable_path = pathlib.Path(line.split(maxsplit=2)[-1])
+    for hive, flags in (
+        (winreg.HKEY_CURRENT_USER, 0),  # local user installation
+        (winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_64KEY),  # 64 bit
+        (winreg.HKEY_LOCAL_MACHINE, winreg.KEY_WOW64_32KEY),  # 32 bit
+    ):
+        try:
+            with winreg.OpenKeyEx(hive, r"Software\Python\PythonCore", access=winreg.KEY_READ | flags) as python_core:
+                for version in enum_keys(python_core):
+                    with winreg.OpenKey(python_core, rf"{version}\InstallPath") as install_path:
+                        try:
+                            exec_str = winreg.QueryValueEx(install_path, 'ExecutablePath')[0]
+                            found_path_strings.add(exec_str)
+                        except OSError:
+                            # executable path missing?
+                            ...
+        except OSError:  # move to the next hive
+            continue
 
-            else:  # non-preferred envionment
-                executable_path = pathlib.Path(line.split(maxsplit=1)[-1])
+    paths_64_bit: dict[tuple[int, int], pathlib.Path] = {}
+    paths_32_bit: dict[tuple[int, int], pathlib.Path] = {}
 
-            possible_executable_paths.add(executable_path)
-
-    except OSError:  # py launcher not installed
-        print_and_format(
-            "Warning: py launcher for Windows is not installed. Some installed Python versions may not be automatically detected.",
-            WARN,
-        )
-        print_and_format(
-            "See https://github.com/pt1243/python-guide/blob/main/practical-matters/installing-and-managing-python.md for more information.",
-            WARN,
-        )
-
-    # handle virtual environments
-    try:
-        env = {"VIRTUAL_ENV": "", "PATH": os.environ["_OLD_VIRTUAL_PATH"]}
-        path_entries = os.environ["_OLD_VIRTUAL_PATH"]
-    except KeyError:
-        env = None
-        path_entries = os.environ["PATH"]
-
-    for entry in path_entries.split(";"):
-        if "Python" in entry:
-            if entry.endswith("/Scripts/"):
-                root_dir = pathlib.Path(entry).parent
+    for path_string in found_path_strings:
+        executable = pathlib.Path(path_string)
+        if executable.exists():
+            if verify_executable_is_python(executable):
+                if get_is_64_bit(executable):
+                    paths_64_bit[get_version_info(executable)] = executable
+                else:
+                    paths_32_bit[get_version_info(executable)] = executable
             else:
-                root_dir = pathlib.Path(entry)
-            possible_executable = root_dir / "python.exe"
-            if possible_executable.exists():
-                possible_executable_paths.add(possible_executable)
+                print_and_format(f"Warning: executable at '{path_string}' does not appear to be a Python interpreter.", WARN)
+                print_and_format("Consider (re)running the uninstaller to correctly remove all registry keys.", WARN)
+                continue
+        else:
+            print_and_format(f"Warning: Python registry entry '{path_string}' does not exist.", WARN)
+            print_and_format("Consider (re)running the uninstaller to correctly remove all registry keys.", WARN)
+            continue
 
-    shutil_text = subprocess.run(
-        [str(_BASE_EXECUTABLE_PATH), "-c", "import shutil; print(shutil.which('python'))"],
-        env=env,
-        capture_output=True,
-        text=True,
-    ).stdout.strip()
-    if shutil_text != "":
-        possible_executable_paths.add(pathlib.Path(shutil_text))
+    if len(paths_64_bit) == 0:
+        if len(paths_32_bit) == 0:
+            print_and_format("Warning: could not obtain any Python installations from registry keys.", WARN)
+            print_and_format("Falling back to current executable; additional installations will need to be selected manually.", WARN)
+            return {(sys.version_info[0], sys.version_info[1]): _BASE_EXECUTABLE_PATH}
+        else:
+            print_and_format("Warning: no 64-bit versions of Python found.", WARN)
+            print_and_format("Consider installing 64-bit Python.", WARN)
+            for k in paths_32_bit:
+                if k[0] == 2 or k[1] < 8:
+                    # TODO: distinguish between completely unsupported, and just unsupported by tox etc
+                    print_and_format(f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually.")
+            return dict(sorted({k: v for k, v in paths_32_bit.items() if k[1] >= 8}.items()))
 
-    where_entries = subprocess.run(
-        "where python",
-        shell=True,
-        env=env,
-        capture_output=True,
-        text=True,
-    ).stdout.splitlines()
-    for entry in where_entries:
-        entry_path = pathlib.Path(entry)
-        if not entry_path.is_relative_to(pathlib.Path("~/AppData/Local/Microsoft/WindowsApps").expanduser()):
-            possible_executable_paths.add(entry_path)
-
-    if check_running_in_virtual_environment():
-        possible_executable_paths.add(_BASE_EXECUTABLE_PATH)
-    else:
-        possible_executable_paths.add(_CURRENT_EXECUTABLE_PATH)
-
-    results: dict[tuple[int, int], pathlib.Path] = {}
-    results_32_bit: dict[tuple[int, int], pathlib.Path] = {}
-
-    for entry in possible_executable_paths:
-        if verify_executable_is_python(entry):
-            if not verify_executable_is_venv(entry):
-                entry_version_info = get_version_info(entry)
-                if entry_version_info >= (3, 7):
-                    if is_64_bit(entry):
-                        results[entry_version_info] = entry
-                    else:
-                        results_32_bit[entry_version_info] = entry
+    if len(paths_32_bit) > 0:
+        print_and_format("Warning: the following 32-bit Python installations were found:", WARN)
+        for path in paths_32_bit.values():
+            print_and_format(f"    {path}", WARN)
+        print_and_format("Consider upgrading these versions to 64-bit Python.", WARN)
     
-    if len(results) == 0:
-        print_and_format("Warning: no 64-bit Python versions found. Falling back to 32-bit versions.", WARN)
-        print_and_format("Consider upgrading to 64-bit Python.")
-        return results_32_bit
-    else:
-        return results
+    for k in paths_64_bit:
+        if k[0] == 2 or k[1] < 8:
+            # TODO: distinguish between completely unsupported, and just unsupported by tox etc
+            print_and_format(f"Note: Python version {'.'.join(str(i) for i in k)} is no longer supported. This can still be selected manually.")
+    return dict(sorted({k: v for k, v in paths_64_bit.items() if k[1] >= 8}.items()))
