@@ -4,11 +4,11 @@
 try:
     from core import (
         check_os_is_windows,
-        check_running_in_virtual_environment,
         check_git_installed,
         get_python_versions,
         print_and_format,
         choose_directory,
+        IS_VIRTUAL_ENVIRONMENT,
         WARN,
         ERROR,
     )
@@ -46,7 +46,7 @@ def main():
 
     windll.shcore.SetProcessDpiAwareness(1)  # make tkinter not blurry
 
-    if not check_running_in_virtual_environment():
+    if not IS_VIRTUAL_ENVIRONMENT():
         print_and_format("Warning: not running in a virtual environment.", WARN)
         print_and_format(
             "Follow the instructions at https://github.com/pt1243/pyprojectsetup#readme to create a virtual environment and install this tool as a package.",
@@ -71,7 +71,7 @@ def main():
 
         ...
 
-        if not check_running_in_virtual_environment():
+        if not IS_VIRTUAL_ENVIRONMENT():
             # print_and_format("Warning: adding ")
             ...
 

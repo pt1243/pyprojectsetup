@@ -12,7 +12,9 @@ _third_party_import_errors = {
 
 _BASE_PREFIX_PATH = pathlib.Path(sys.base_prefix)
 _BASE_EXECUTABLE_PATH = _BASE_PREFIX_PATH / "python.exe"
-_BASE_FOLDER = pathlib.Path(__file__).resolve().parents[1]
+_CURRENT_EXECUTABLE = pathlib.Path(sys.executable)
+_ROOT_FOLDER = pathlib.Path(__file__).resolve().parents[1]
+IS_VIRTUAL_ENVIRONMENT = (sys.prefix != sys.base_prefix)
 
 
 try:
@@ -67,21 +69,24 @@ if any(v for v in _third_party_import_errors.values()):
     for module, import_error in _third_party_import_errors.items():
         if import_error:
             print_and_format(f"    {module}", ERROR)
-    print_and_format(
-        "\nFollow the instructions at https://github.com/pt1243/pyprojectsetup#readme to create a virtual environment and install all required dependencies.",
-        WARN,
-    )
+    print_and_format("Would you like to install these items now? This will run the appropriate scripts to do so.")
+    ...  # TODO: prompt library
+
+    install_deps = True
+    if IS_VIRTUAL_ENVIRONMENT:
+        if not _third_party_import_errors["virtualenv"]:
+            ...
+    else:
+        print_and_format(
+            "\nFollow the instructions at https://github.com/pt1243/pyprojectsetup#readme to create a virtual environment and install all required dependencies.",
+            WARN,
+        )
     exit(1)
 
 
 def check_os_is_windows() -> bool:
     """Returns `True` if the operating system is Windows, else `False`."""
     return sys.platform == "win32"
-
-
-def check_running_in_virtual_environment() -> bool:
-    """Returns `True` if running in a virtual environment, else `False`."""
-    return sys.prefix != sys.base_prefix
 
 
 def check_git_installed() -> bool:
@@ -229,19 +234,22 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     return dict(sorted({k: v for k, v in paths_64_bit.items() if k[0] >= 3 and k[1] >= 8}.items()))
 
 
-def choose_directory(prompt: str = "Pleasse select a folder...", title: str = "Select folder", initialdir: str = _BASE_FOLDER, must_be_empty: bool = False) -> pathlib.Path:
+def choose_directory(prompt: str = "Please select a folder...", title: str = "Select folder", initialdir: str = _ROOT_FOLDER, must_be_empty: bool = False) -> pathlib.Path:
     """Opens a tkinter folder choice dialog and returns the path to the folder."""
     while True:
         print_and_format(prompt)
         dir_str = tkinter.filedialog.askdirectory(title=title, initialdir=initialdir)
         if dir_str == "":
-            input("Directory selection cancelled; press any key to continue... ",)
+            try:
+                input("Directory selection cancelled; press any key to continue... ",)
+            except KeyboardInterrupt:
+                exit(1)
             continue
         dir_path = pathlib.Path(dir_str)
         if must_be_empty:
             if next(dir_path.iterdir(), None) is None:
                 break
-            print_and_format(f"Warning: selected directory '{dir_path}' is not empty; press any key to re-select... ", WARN, end="")  # TODO: press any key to continue
+            print_and_format(f"Warning: selected directory '{dir_path}' is not empty; press any key to re-select... ", WARN, end="")
         else:
             break
     return dir_path
