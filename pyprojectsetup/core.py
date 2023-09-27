@@ -14,7 +14,7 @@ _BASE_PREFIX_PATH = pathlib.Path(sys.base_prefix)
 _BASE_EXECUTABLE_PATH = _BASE_PREFIX_PATH / "python.exe"
 _CURRENT_EXECUTABLE = pathlib.Path(sys.executable)
 _ROOT_FOLDER = pathlib.Path(__file__).resolve().parents[1]
-_IS_VIRTUAL_ENVIRONMENT = (sys.prefix != sys.base_prefix)
+_IS_VIRTUAL_ENVIRONMENT = sys.prefix != sys.base_prefix
 
 
 try:
@@ -42,7 +42,10 @@ except ImportError:
 
 if not _IS_VIRTUAL_ENVIRONMENT:
     print_and_format("ERROR: not running from a virtual environment.", ERROR)
-    print_and_format("Follow the instructions at https://github.com/pt1243/pyprojectsetup#readme to install this tool correctly.", WARN)
+    print_and_format(
+        "Follow the instructions at https://github.com/pt1243/pyprojectsetup#readme to install this tool correctly.",
+        WARN,
+    )
     exit(1)
 
 
@@ -75,16 +78,25 @@ if any(v for v in _third_party_import_errors.values()):
     for module, import_error in _third_party_import_errors.items():
         if import_error:
             print_and_format(f"    {module}", ERROR)
-    print_and_format("Would you like to install these dependencies now? This will run the appropriate 'pip' commands to do so.")
-    
+    print_and_format(
+        "Would you like to install these dependencies now? This will run the appropriate 'pip' commands to do so."
+    )
+
     ...  # TODO: prompt library
-# if True:
+    # if True:
     install_deps = True
 
     if install_deps:
-        pip_install_call = subprocess.run([str(_CURRENT_EXECUTABLE), "-m", "pip", "install", "requests", "colorama", "virtualenv"], capture_output=True, text=True)
+        pip_install_call = subprocess.run(
+            [str(_CURRENT_EXECUTABLE), "-m", "pip", "install", "requests", "colorama", "virtualenv"],
+            capture_output=True,
+            text=True,
+        )
         if pip_install_call.returncode != 0:
-            print_and_format(f"ERROR: pip failed with exit code {pip_install_call.returncode} and the following stdout and stderr:", ERROR)
+            print_and_format(
+                f"ERROR: pip failed with exit code {pip_install_call.returncode} and the following stdout and stderr:",
+                ERROR,
+            )
             print_and_format("\nstdout:", ERROR)
             for line in pip_install_call.stdout.splitlines():
                 print("    " + line)
@@ -92,11 +104,9 @@ if any(v for v in _third_party_import_errors.values()):
             for line in pip_install_call.stderr.splitlines():
                 print("    " + line)
             exit(1)
-    
+
         else:
             print_and_format("All dependencies successfully installed.")
-            import virtualenv
-            print(virtualenv.__version__)
 
 
 def check_os_is_windows() -> bool:
@@ -135,7 +145,7 @@ def get_version_info(executable: pathlib.Path) -> tuple[int, int]:
 
 
 def verify_executable_is_python(executable: pathlib.Path) -> bool:
-    """Return `True` if the executable is a Python interpreter, else `False`."""
+    """Return `True` if the executable seems to be a functional a Python interpreter, else `False`."""
     return (
         pathlib.Path(
             subprocess.run(
@@ -250,14 +260,21 @@ def get_python_versions() -> dict[tuple[int, int], pathlib.Path]:
     return dict(sorted({k: v for k, v in paths_64_bit.items() if k[0] >= 3 and k[1] >= 8}.items()))
 
 
-def choose_directory(prompt: str = "Please select a folder...", title: str = "Select folder", initialdir: str = _ROOT_FOLDER, must_be_empty: bool = False) -> pathlib.Path:
+def choose_directory(
+    prompt: str = "Please select a folder...",
+    title: str = "Select folder",
+    initialdir: str | pathlib.Path = _ROOT_FOLDER,
+    must_be_empty: bool = False,
+) -> pathlib.Path:
     """Opens a tkinter folder choice dialog and returns the path to the folder."""
     while True:
         print_and_format(prompt)
         dir_str = tkinter.filedialog.askdirectory(title=title, initialdir=initialdir)
         if dir_str == "":
             try:
-                input("Directory selection cancelled; press any key to continue... ",)
+                input(
+                    "Directory selection cancelled; press any key to continue... ",
+                )
             except KeyboardInterrupt:
                 exit(1)
             continue
@@ -265,7 +282,9 @@ def choose_directory(prompt: str = "Please select a folder...", title: str = "Se
         if must_be_empty:
             if next(dir_path.iterdir(), None) is None:
                 break
-            print_and_format(f"Warning: selected directory '{dir_path}' is not empty; press any key to re-select... ", WARN, end="")
+            print_and_format(
+                f"Warning: selected directory '{dir_path}' is not empty; press any key to re-select... ", WARN, end=""
+            )
         else:
             break
     return dir_path
