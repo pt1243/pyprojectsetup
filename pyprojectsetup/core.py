@@ -42,7 +42,7 @@ except ImportError:
 
 if not _IS_VIRTUAL_ENVIRONMENT:
     print_and_format("ERROR: not running from a virtual environment.", ERROR)
-    print_and_format("Follow the instructions at https://github.com/pt1243/pyprojectsetup#readme to install this tool correctly.")
+    print_and_format("Follow the instructions at https://github.com/pt1243/pyprojectsetup#readme to install this tool correctly.", WARN)
     exit(1)
 
 
@@ -75,16 +75,28 @@ if any(v for v in _third_party_import_errors.values()):
     for module, import_error in _third_party_import_errors.items():
         if import_error:
             print_and_format(f"    {module}", ERROR)
-    print_and_format("Would you like to install these items now? This will run the appropriate scripts to do so.")
-    ...  # TODO: prompt library
-
-    install_deps = True
+    print_and_format("Would you like to install these dependencies now? This will run the appropriate 'pip' commands to do so.")
     
-    print_and_format(
-        "\nFollow the instructions at https://github.com/pt1243/pyprojectsetup#readme to create a virtual environment and install all required dependencies.",
-        WARN,
-    )
-    exit(1)
+    ...  # TODO: prompt library
+# if True:
+    install_deps = True
+
+    if install_deps:
+        pip_install_call = subprocess.run([str(_CURRENT_EXECUTABLE), "-m", "pip", "install", "requests", "colorama", "virtualenv"], capture_output=True, text=True)
+        if pip_install_call.returncode != 0:
+            print_and_format(f"ERROR: pip failed with exit code {pip_install_call.returncode} and the following stdout and stderr:", ERROR)
+            print_and_format("\nstdout:", ERROR)
+            for line in pip_install_call.stdout.splitlines():
+                print("    " + line)
+            print_and_format("\nstderr:", ERROR)
+            for line in pip_install_call.stderr.splitlines():
+                print("    " + line)
+            exit(1)
+    
+        else:
+            print_and_format("All dependencies successfully installed.")
+            import virtualenv
+            print(virtualenv.__version__)
 
 
 def check_os_is_windows() -> bool:
@@ -95,7 +107,8 @@ def check_os_is_windows() -> bool:
 def check_git_installed() -> bool:
     """Returns `True` if git is installed, else `False`."""
     try:
-        subprocess.run(["git", "-h"], capture_output=True)
+        if subprocess.run(["git", "-h"], capture_output=True).returncode != 0:
+            return False
         return True
     except OSError:
         return False

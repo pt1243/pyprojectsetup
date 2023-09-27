@@ -66,7 +66,7 @@ def main():
     else:
         ...  # TODO: figure out what to do here
     
-    choose_directory(must_be_empty=True)
+    # choose_directory(must_be_empty=True)
 
 
 if __name__ == "__main__":
