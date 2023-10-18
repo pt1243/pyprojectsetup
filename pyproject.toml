@@ -2,7 +2,7 @@
 name = "pyprojectsetup"
 description = "My Python package."
 version = "0.1.0"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 readme = "README.md"
 license = {file = "LICENSE"}
 dependencies = [
@@ -10,6 +10,9 @@ dependencies = [
     "colorama>=0.4.6",
     "virtualenv",
 ]
+
+[project.scripts]
+initial-setup = "pyprojectsetup.initial_setup:main"
 
 [build-system]
 requires = ["setuptools>=43.0.0", "wheel"]
@@ -26,11 +29,10 @@ exclude = [
     'templates',
 ]
 warn_unused_configs = true
-ignore_missing_imports = true
 
 [tool.black]
 line-length = 120
-extend-exclude = '''
+force-exclude = '''
 (
     templates
 )

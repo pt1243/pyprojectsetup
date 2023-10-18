@@ -2,7 +2,7 @@
 
 
 try:
-    from core import (
+    from .core import (
         check_os_is_windows,
         check_git_installed,
         get_python_versions,
@@ -48,7 +48,8 @@ def main():
     if not check_git_installed():
         print_and_format("Warning: git is not installed.", WARN)
         print_and_format(
-            "This install script will continue to run, but git must be installed for the main script to function.", WARN
+            "This install script will continue to run, but update checking will not be available, and git must be installed for the main script to function.",
+            WARN,
         )
 
     python_versions = get_python_versions()

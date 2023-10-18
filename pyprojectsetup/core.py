@@ -108,6 +108,9 @@ if any(v for v in _third_party_import_errors.values()):
         else:
             print_and_format("All dependencies successfully installed.")
 
+    else:
+        exit(1)
+
 
 def check_os_is_windows() -> bool:
     """Returns `True` if the operating system is Windows, else `False`."""
