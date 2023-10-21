@@ -64,9 +64,9 @@ def main():
         ...  # prompt to add
 
         add_to_path = inquirer.select(
-            message="Note: 'pyprojectsetup' is not registered as a command on your system PATH. Would you like to add it now?",
+            message="Note: 'pyprojectsetup' is not registered as a command on your system PATH.\nWould you like to add it now?",
             choices=["Yes (recommended)", "No"],
-            long_instruction="This alows you to run 'pyprojectsetup' from anywhere without first activating this virtual environment. This is strongly recommended.",
+            long_instruction="This alows you to run 'pyprojectsetup' from anywhere without first activating this virtual environment.\nThis is strongly recommended.",
             filter=lambda res: True if res == "Yes (recommended)" else False,
         ).execute()
 
