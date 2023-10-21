@@ -313,9 +313,3 @@ def choose_directory(
         else:
             break
     return dir_path
-
-
-def choose_file_save_location(
-    prompt: str = "Please select a location to save the file...",
-):
-    ...

@@ -32,9 +32,12 @@ except ImportError:
         raise SystemExit(1)
 
 
+from pathlib import Path
 import shutil
-import virtualenv
+from InquirerPy import inquirer
 
+import sys
+print(sys.executable)
 
 def main():
     if not check_os_is_windows():
@@ -59,10 +62,16 @@ def main():
 
     if shutil.which("pyprojectsetup") is None:
         ...  # prompt to add
-        # print_and_format("Note: pyprojectsetup is not installed on your system path. Do you want to install it?")
-        # print_and_format("This allows you to run 'pyprojectsetup' from anywhere to run this tool, instead of activating a virtual envirornment.")
 
-        ...
+        add_to_path = inquirer.select(
+            message="Note: 'pyprojectsetup' is not registered as a command on your system PATH. Would you like to add it now?",
+            choices=["Yes (recommended)", "No"],
+            long_instruction="This alows you to run 'pyprojectsetup' from anywhere without first activating this virtual environment. This is strongly recommended.",
+            filter=lambda res: True if res == "Yes (recommended)" else False,
+        ).execute()
+
+        if add_to_path:
+            ...
 
     else:
         ...  # TODO: figure out what to do here
