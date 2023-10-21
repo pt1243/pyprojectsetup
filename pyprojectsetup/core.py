@@ -7,6 +7,7 @@ _third_party_import_errors = {
     "colorama": False,
     "requests": False,
     "virtualenv": False,
+    "InquirerPy": False,
 }
 
 
@@ -72,23 +73,46 @@ try:
     import virtualenv
 except ImportError:
     _third_party_import_errors["virtualenv"] = True
+try:
+    from InquirerPy import inquirer
+except ImportError:
+    _third_party_import_errors["InquirerPy"] = True
 
 if any(v for v in _third_party_import_errors.values()):
     print_and_format("ERROR: unable to import the following third party dependencies:", ERROR)
     for module, import_error in _third_party_import_errors.items():
         if import_error:
             print_and_format(f"    {module}", ERROR)
-    print_and_format(
+
+    install_prompt = (
         "Would you like to install these dependencies now? This will run the appropriate 'pip' commands to do so."
     )
 
-    ...  # TODO: prompt library
-    # if True:
-    install_deps = True
+    if not _third_party_import_errors["InquirerPy"]:
+        install_deps = inquirer.select(
+            message=install_prompt,
+            choices=["Install now", "Do not install (exit)"],
+            filter=lambda res: True if res == "Install now" else False,
+        ).execute()
+
+    else:
+        user_input = input(install_prompt + " [Y/n]: ")
+        if user_input in ("Y", "y", ""):
+            install_deps = True
+        elif user_input in ("N", "n"):
+            install_deps = False
+        else:
+            print_and_format(f"Warning: input '{user_input}' not recognized, exiting.")
 
     if install_deps:
         pip_install_call = subprocess.run(
-            [str(_CURRENT_EXECUTABLE), "-m", "pip", "install", "requests", "colorama", "virtualenv"],
+            [
+                str(_CURRENT_EXECUTABLE),
+                "-m",
+                "pip",
+                "install",
+                *(dep for dep, issue in _third_party_import_errors.items() if issue),
+            ],
             capture_output=True,
             text=True,
         )
@@ -275,9 +299,7 @@ def choose_directory(
         dir_str = tkinter.filedialog.askdirectory(title=title, initialdir=initialdir)
         if dir_str == "":
             try:
-                input(
-                    "Directory selection cancelled; press any key to continue... ",
-                )
+                input("Directory selection cancelled; press any key to continue... ")
             except KeyboardInterrupt:
                 exit(1)
             continue
@@ -291,3 +313,9 @@ def choose_directory(
         else:
             break
     return dir_path
+
+
+def choose_file_save_location(
+    prompt: str = "Please select a location to save the file...",
+):
+    ...

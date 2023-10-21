@@ -9,6 +9,7 @@ dependencies = [
     "requests",
     "colorama>=0.4.6",
     "virtualenv",
+    "InquirerPy",
 ]
 
 [project.scripts]
