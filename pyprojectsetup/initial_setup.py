@@ -37,7 +37,9 @@ import shutil
 from InquirerPy import inquirer
 
 import sys
+
 print(sys.executable)
+
 
 def main():
     if not check_os_is_windows():
@@ -71,7 +73,9 @@ def main():
         ).execute()
 
         if add_to_path:
-            ...
+            chosen_directory = choose_directory(
+                "Select a directory to add the script to...",
+            )
 
     else:
         ...  # TODO: figure out what to do here

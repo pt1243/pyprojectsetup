@@ -1,6 +1,7 @@
 import sys
 import pathlib
 import subprocess
+from typing import Literal
 
 
 _third_party_import_errors = {
@@ -291,25 +292,27 @@ def choose_directory(
     prompt: str = "Please select a folder...",
     title: str = "Select folder",
     initialdir: str | pathlib.Path = _ROOT_FOLDER,
-    must_be_empty: bool = False,
+    must_be_empty: Literal["force", "warn", "ignore"] = "warn",
 ) -> pathlib.Path:
     """Opens a tkinter folder choice dialog and returns the path to the folder."""
+    retry_query = inquirer.select(
+        "Directory selection cancelled; retry or quit?",
+        ["Retry", "Quit (Ctrl-C)"],
+        filter=lambda res: False if res == "Retry" else False,
+    )
     while True:
         print_and_format(prompt)
         dir_str = tkinter.filedialog.askdirectory(title=title, initialdir=initialdir)
         if dir_str == "":
             try:
-                input("Directory selection cancelled; press any key to continue... ")
+                should_quit = retry_query.execute()
             except KeyboardInterrupt:
                 exit(1)
-            continue
+            if should_quit:
+                exit(1)
         dir_path = pathlib.Path(dir_str)
-        if must_be_empty:
-            if next(dir_path.iterdir(), None) is None:
-                break
-            print_and_format(
-                f"Warning: selected directory '{dir_path}' is not empty; press any key to re-select... ", WARN, end=""
-            )
-        else:
-            break
-    return dir_path
+        is_empty = next(dir_path.iterdir(), None)
+        if is_empty:
+            return dir
+        if must_be_empty == "force":
+            ...
