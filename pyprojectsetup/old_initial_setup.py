@@ -2,7 +2,7 @@
 
 
 try:
-    from .core import (
+    from .old_core import (
         check_os_is_windows,
         check_git_installed,
         get_python_versions,
