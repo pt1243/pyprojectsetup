@@ -1,0 +1,38 @@
+image: python:3.12
+
+before_script:
+  - pip install tox
+
+tests:
+  parallel:
+    matrix:
+$GITLAB_MATRIX_ENTRIES$
+    image: python:$PYTHON_VERSION
+    script:
+      - tox -e $TOX_TEST_ENV
+
+lint:
+  script:
+    - tox -e lint
+
+type-check:
+  script:
+    - tox -e type-check
+
+format:
+  script:
+    - tox -e format
+
+coverage:
+  before_script: []
+  script:
+    - pip install pytest pytest-cov coverage
+    - coverage erase
+    - pytest -q
+    - coverage xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml

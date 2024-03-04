@@ -32,3 +32,29 @@ class Setup:
 
     def copy_templates(self):
         pass
+
+
+# $TOX_ALL_TEST_ENVS$ -> py{38,39,310,311,312}
+# $PROJECT_NAME$ -> sample_project
+# $PYPROJECT_TOML_DEPENDENCIES$ -> [\n    "numpy",\n    "scipy"\n] or []
+# $AUTHOR_NAME$ -> Jeremy Smith
+# $AUTHOR_EMAIL$ -> ...
+# $PROJECT_BADGES$ ->
+"""
+[![Tests](https://github.com/pt1243/sample-project/actions/workflows/test.yml/badge.svg)](https://github.com/pt1243/sample-project/actions/workflows/test.yml)
+[![Lint](https://github.com/pt1243/sample-project/actions/workflows/lint.yml/badge.svg)](https://github.com/pt1243/sample-project/actions/workflows/lint.yml)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+"""
+# $GITLAB_MATRIX_ENTRIES$ ->
+"""
+      - TOX_TEST_ENV: py38
+        PYTHON_VERSION: "3.8"
+      - TOX_TEST_ENV: py39
+        PYTHON_VERSION: "3.9"
+      - TOX_TEST_ENV: py310
+        PYTHON_VERSION: "3.10"
+      - TOX_TEST_ENV: py311
+        PYTHON_VERSION: "3.11"
+      - TOX_TEST_ENV: py312
+        PYTHON_VERSION: "3.12"
+"""

@@ -1,0 +1,45 @@
+[project]
+name = "$PROJECT_NAME$"
+authors = [
+    {name = "$AUTHOR_NAME$", email = "$AUTHOR_EMAIL$"},
+]
+description = "My Python package."
+requires-python = ">=3.8"
+readme = "README.md"
+license = {file = "LICENSE"}
+dependencies = $PYPROJECT_TOML_DEPENDENCIES$
+dynamic = ["version"]
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["$PROJECT_NAME$"]
+
+[tool.setuptools.dynamic]
+version = {attr = "$PROJECT_NAME$.__version__"}
+
+[tool.pytest.ini_options]
+addopts = "--cov=$PROJECT_NAME$ --cov-report=term-missing --cov-append"
+testpaths = [
+    "tests",
+]
+
+[tool.coverage.report]
+omit = ["__init__.py"]
+
+[tool.mypy]
+exclude = [
+    'tests',
+    'docs',
+]
+warn_unused_configs = true
+
+[tool.black]
+line-length = 120
+force-exclude = '''
+(
+    docs
+)
+'''
