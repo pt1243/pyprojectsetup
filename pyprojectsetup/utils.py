@@ -76,3 +76,10 @@ def get_python_versions() -> dict[tuple[int, int], tuple[Path, int]]:
 def is_on_path() -> bool:
     return shutil.which("pyprojectsetup") is not None
 
+
+def is_folder_empty(directory: Path) -> bool:
+    if not directory.exists():
+        raise ValueError("path does not exist")
+    if not directory.is_dir():
+        raise ValueError("path is not a directory")
+    return next(directory.iterdir(), None) is not None
